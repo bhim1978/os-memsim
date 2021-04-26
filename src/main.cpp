@@ -73,14 +73,46 @@ void printStartMessage(int page_size)
 void createProcess(int text_size, int data_size, Mmu *mmu, PageTable *page_table)
 {
     // TODO: implement this!
-    //   - create new process in the MMU
+    //   - create new process in the MMU - COMPLETED
+    uint32_t pid;
+
+    pid = createProcess();
+
     //   - allocate new variables for the <TEXT>, <GLOBALS>, and <STACK>
-    //   - print pid
+    //addVariableToProcess(uint32_t pid, std::string var_name, DataType type, uint32_t size, uint32_t address)
+//    allocateVariable(pid, "<TEXT>", Char, text_size, *mmu, *page_table);
+//    allocateVariable(pid, "<GLOBALS>", [insert type], data_size, *mmu, *page_table);
+//    allocateVariable(pid, "<STACK>", [insert type], 65536, *mmu, *page_table);
+    
+    //   - print pid - COMPLETED
+    std::cout << pid;
 }
 
 void allocateVariable(uint32_t pid, std::string var_name, DataType type, uint32_t num_elements, Mmu *mmu, PageTable *page_table)
 {
     // TODO: implement this!
+    int bytes_size;
+
+    bytes_size = 0;
+
+    if (type == Char)
+    {
+        bytes_size = num_elements;
+    }
+    else if (type == Short)
+    {
+        bytes_size = num_elements * 2;
+    }
+    else if (type == Int || type == Float)
+    {
+        bytes_size = num_elements * 4;
+    }
+    else if (type == Long || type == Float)
+    {
+        bytes_size = num_elements * 8;
+    }
+
+
     //   - find first free space within a page already allocated to this process that is large enough to fit the new variable
     //   - if no hole is large enough, allocate new page(s)
     //   - insert variable into MMU

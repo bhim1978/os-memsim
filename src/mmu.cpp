@@ -61,7 +61,13 @@ void Mmu::print()
     {
         for (j = 0; j < _processes[i]->variables.size(); j++)
         {
+/*  This may need some adjustments for displaying.
             // TODO: print all variables (excluding <FREE_SPACE> entries)
+            if !(_processes[i]->variables[j]->type = FreeSpace)
+            {
+                std:: cout << _processes->_next_pid << " | " << _processes[i]->variables[j]->name << " | " << _processes[i]->variables[j]->virtual_address << << " | " << _processes[i]->variables[j]->size;
+            }
+*/
         }
     }
 }

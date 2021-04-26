@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 #include <cstring>
+#include <vector>
+#include <sstream>
 #include "mmu.h"
 #include "pagetable.h"
 
@@ -66,7 +68,7 @@ int main(int argc, char **argv)
         if(tokens[0].compare("set") == 0)
         {
             int PID;
-            int offset
+            int offset;
             //std::istringstream(tokens[1]) >> PID;
         }
 
@@ -111,13 +113,13 @@ void createProcess(int text_size, int data_size, Mmu *mmu, PageTable *page_table
     //   - create new process in the MMU - COMPLETED
     uint32_t pid;
 
-    pid = createProcess();
+    pid = mmu->createProcess();
 
     //   - allocate new variables for the <TEXT>, <GLOBALS>, and <STACK>
     //addVariableToProcess(uint32_t pid, std::string var_name, DataType type, uint32_t size, uint32_t address)
-//    allocateVariable(pid, "<TEXT>", Char, text_size, *mmu, *page_table);
-//    allocateVariable(pid, "<GLOBALS>", [insert type], data_size, *mmu, *page_table);
-//    allocateVariable(pid, "<STACK>", [insert type], 65536, *mmu, *page_table);
+    addVariableToProcess(pid, "<TEXT>", FreeSpace, text_size, [insert address]);
+    addVariableToProcess(pid, "<GLOBALS>", FreeSpace, data_size, [insert address];
+    addVariableToProcess(pid, "<STACK>", FreeSpace, 65536, [insert address]); // What type should these be?
     
     //   - print pid - COMPLETED
     std::cout << pid;

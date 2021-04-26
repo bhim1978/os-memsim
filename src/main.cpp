@@ -10,6 +10,8 @@ void allocateVariable(uint32_t pid, std::string var_name, DataType type, uint32_
 void setVariable(uint32_t pid, std::string var_name, uint32_t offset, void *value, Mmu *mmu, PageTable *page_table, void *memory);
 void freeVariable(uint32_t pid, std::string var_name, Mmu *mmu, PageTable *page_table);
 void terminateProcess(uint32_t pid, Mmu *mmu, PageTable *page_table);
+void tokenize(std::string const &str, const char delim, std::vector<std::string> &out);
+DataType dataTyper(std::string check);
 
 int main(int argc, char **argv)
 {
@@ -33,14 +35,47 @@ int main(int argc, char **argv)
     PageTable *page_table = new PageTable(page_size);
 
     // Prompt loop
-    std::string command;
+   std::string command;
     std::cout << "> ";
-    std::getline (std::cin, command);
+    std::getline (std::cin, command); 
+    const char delim = ' ';
+    std::vector<std::string> tokens;
     while (command != "exit") {
         // Handle command
-        // TODO: implement this!
+        tokenize(command, delim, tokens);
+        if(tokens[0].compare("create") == 0)
+        {
+            int text_size;
+            int data_size;
+            std::istringstream(tokens[1]) >> text_size;
+            std::istringstream(tokens[2]) >> data_size;
+            std::cout << "\n create  text_size: " << text_size << "\n data_size: " << data_size; 
+            //createProcess(text_size, data_size, mmu, page_table);
+        }
 
+        if(tokens[0].compare("allocate") == 0)
+        {
+            int PID;
+            int number_of_elements;
+            std::istringstream(tokens[1]) >> PID;
+            std::istringstream(tokens[4]) >> number_of_elements;
+            allocateVariable((uint32_t)PID, tokens[2], dataTyper(tokens[3]), (uint32_t)number_of_elements, mmu, page_table);
+            //std::cout << "\n allocate PID: " << PID << "\n var_name: " << tokens[2] << "\n datatype: " << tokens[3] << "\n number_of_elements: " << number_of_elements; 
+        }
+
+        if(tokens[0].compare("set") == 0)
+        {
+            int PID;
+            int offset
+            //std::istringstream(tokens[1]) >> PID;
+        }
+
+        if(tokens[0].compare("exit") == 0)
+        {
+            
+        }
         // Get next command
+        tokens.clear();
         std::cout << "> ";
         std::getline (std::cin, command);
     }
@@ -140,4 +175,49 @@ void terminateProcess(uint32_t pid, Mmu *mmu, PageTable *page_table)
     // TODO: implement this!
     //   - remove process from MMU
     //   - free all pages associated with given process
+}
+
+void tokenize(std::string const &str, const char delim, std::vector<std::string> &out)
+{
+    // construct a stream from the string
+    std::stringstream ss(str);
+ 
+    std::string s;
+    while (std::getline(ss, s, delim)) {
+        out.push_back(s);
+    }
+}
+
+DataType dataTyper(std::string check)
+{
+    if(check.compare("Char") == 0)
+    {
+        return DataType::Char;
+    }
+
+    if(check.compare("Short") == 0)
+    {
+        return DataType::Short;
+    }
+
+    if(check.compare("Int") == 0)
+    {
+        return DataType::Int;
+    }
+
+    if(check.compare("Float") == 0)
+    {
+        return DataType::Float;
+    }
+
+    if(check.compare("Long") == 0)
+    {
+        return DataType::Long;
+    }
+
+    if(check.compare("Double") == 0)
+    {
+        return DataType::Double;
+    }
+
 }

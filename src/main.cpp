@@ -77,7 +77,68 @@ int main(int argc, char **argv)
             
         }
         // Get next command
+        tokens.clear();   // Prompt loop
+   std::string command;
+    std::cout << "> ";
+    std::getline (std::cin, command); 
+    const char delim = ' ';
+    std::vector<std::string> tokens;
+    while (command != "exit") {
+        // Handle command
+        tokenize(command, delim, tokens);
+        if(tokens[0].compare("create") == 0)
+        {
+            int text_size;
+            int data_size;
+            std::istringstream(tokens[1]) >> text_size;
+            std::istringstream(tokens[2]) >> data_size;
+            std::cout << "\n create  text_size: " << text_size << "\n data_size: " << data_size; 
+            //createProcess(text_size, data_size, mmu, page_table);
+        }
+
+        if(tokens[0].compare("allocate") == 0)
+        {
+            int PID;
+            int number_of_elements;
+            std::istringstream(tokens[1]) >> PID;
+            std::istringstream(tokens[4]) >> number_of_elements;
+            allocateVariable((uint32_t)PID, tokens[2], dataTyper(tokens[3]), (uint32_t)number_of_elements, mmu, page_table);
+            //std::cout << "\n allocate PID: " << PID << "\n var_name: " << tokens[2] << "\n datatype: " << tokens[3] << "\n number_of_elements: " << number_of_elements; 
+        }
+
+        if(tokens[0].compare("set") == 0)//not done
+        {
+            int PID;
+            int offset;
+            //std::istringstream(tokens[1]) >> PID;
+        }
+
+        if(tokens[0].compare("terminate") == 0)
+        {
+            int PID;
+            std::istringstream(tokens[1]) >> PID;
+            terminateProcess(PID, mmu, page_table);
+        }
+
+        if(tokens[0].compare("free") == 0)
+        {
+            int PID;
+            std::istringstream(tokens[1]) >> PID;
+            freeVariable(PID, tokens[2], mmu, page_table);
+        }
+        // Get next command
         tokens.clear();
+        std::cout << "> ";
+        std::getline (std::cin, command);
+    }
+
+    // Cean up
+    free(memory);
+    delete mmu;
+    delete page_table;
+
+    return 0;
+}
         std::cout << "> ";
         std::getline (std::cin, command);
     }

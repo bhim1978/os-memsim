@@ -37,53 +37,13 @@ int main(int argc, char **argv)
     PageTable *page_table = new PageTable(page_size);
 
     // Prompt loop
-   std::string command;
+    std::string command;
     std::cout << "> ";
     std::getline (std::cin, command); 
     const char delim = ' ';
     std::vector<std::string> tokens;
-    while (command != "exit") {
-        // Handle command
-        tokenize(command, delim, tokens);
-        if(tokens[0].compare("create") == 0)
-        {
-            int text_size;
-            int data_size;
-            std::istringstream(tokens[1]) >> text_size;
-            std::istringstream(tokens[2]) >> data_size;
-            std::cout << "\n create  text_size: " << text_size << "\n data_size: " << data_size; 
-            //createProcess(text_size, data_size, mmu, page_table);
-        }
-
-        if(tokens[0].compare("allocate") == 0)
-        {
-            int PID;
-            int number_of_elements;
-            std::istringstream(tokens[1]) >> PID;
-            std::istringstream(tokens[4]) >> number_of_elements;
-            allocateVariable((uint32_t)PID, tokens[2], dataTyper(tokens[3]), (uint32_t)number_of_elements, mmu, page_table);
-            //std::cout << "\n allocate PID: " << PID << "\n var_name: " << tokens[2] << "\n datatype: " << tokens[3] << "\n number_of_elements: " << number_of_elements; 
-        }
-
-        if(tokens[0].compare("set") == 0)
-        {
-            int PID;
-            int offset;
-            //std::istringstream(tokens[1]) >> PID;
-        }
-
-        if(tokens[0].compare("exit") == 0)
-        {
-            
-        }
-        // Get next command
-        tokens.clear();   // Prompt loop
-   std::string command;
-    std::cout << "> ";
-    std::getline (std::cin, command); 
-    const char delim = ' ';
-    std::vector<std::string> tokens;
-    while (command != "exit") {
+    while (command != "exit") 
+    {
         // Handle command
         tokenize(command, delim, tokens);
         if(tokens[0].compare("create") == 0)
@@ -139,17 +99,6 @@ int main(int argc, char **argv)
 
     return 0;
 }
-        std::cout << "> ";
-        std::getline (std::cin, command);
-    }
-
-    // Cean up
-    free(memory);
-    delete mmu;
-    delete page_table;
-
-    return 0;
-}
 
 void printStartMessage(int page_size)
 {
@@ -177,10 +126,9 @@ void createProcess(int text_size, int data_size, Mmu *mmu, PageTable *page_table
     pid = mmu->createProcess();
 
     //   - allocate new variables for the <TEXT>, <GLOBALS>, and <STACK>
-    //addVariableToProcess(uint32_t pid, std::string var_name, DataType type, uint32_t size, uint32_t address)
-    addVariableToProcess(pid, "<TEXT>", Char, text_size, 0);
-    addVariableToProcess(pid, "<GLOBALS>", Char, data_size, (text_size);
-    addVariableToProcess(pid, "<STACK>", Char, 65536, (text_size + data_size)); // What type should these be?
+    allocateVariable(pid, "<TEXT>", Char, text_size, mmu, page_table);
+    allocateVariable(pid, "<GLOBALS>", Char, data_size, mmu, page_table);
+    allocateVariable(pid, "<STACK>", Char, 65536, mmu, page_table); // What type should these be?
     
     //   - print pid - COMPLETED
     std::cout << pid;
@@ -210,8 +158,35 @@ void allocateVariable(uint32_t pid, std::string var_name, DataType type, uint32_
         bytes_size = num_elements * 8;
     }
 
-
     //   - find first free space within a page already allocated to this process that is large enough to fit the new variable
+    for (int i = 0; i < mmu->_processes.size(); i++)
+    {
+        for (int j = 0; j < mmu->_processes[i]->variables.size(); j++)
+        {
+            if (DataType::FreeSpace == mmu->_processes[i]->variables[j]->type)
+            {
+                if (mmu->_processes[i]->variables[j]->size >= bytes_size)
+                {
+                    int offset;
+
+                    offset = mmu->_processes[i]->variables[j]->virtual_address % mmu->memory_size;
+                    if (true)
+                    {
+                        
+                    }
+                    else
+                    {
+                        addVariableToProcess(pid, var_name,type, byte_size, mmu->_processes[i]->variables[j]->virtual_address);
+                        mmu->_processes[i]->variables[j]->virtual_address = (mmu->_processes[i]->variables[j]->virtual_address + bytes_size);
+                        mmu->_processes[i]->variables[j]->size = (mmu->_processes[i]->variables[j]->size - bytes_size);
+                    }
+                }
+            }   
+        }
+    }
+
+
+
     //   - if no hole is large enough, allocate new page(s)
     //   - insert variable into MMU
     //   - print virtual memory address

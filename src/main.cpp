@@ -117,9 +117,9 @@ void createProcess(int text_size, int data_size, Mmu *mmu, PageTable *page_table
 
     //   - allocate new variables for the <TEXT>, <GLOBALS>, and <STACK>
     //addVariableToProcess(uint32_t pid, std::string var_name, DataType type, uint32_t size, uint32_t address)
-    addVariableToProcess(pid, "<TEXT>", FreeSpace, text_size, [insert address]);
-    addVariableToProcess(pid, "<GLOBALS>", FreeSpace, data_size, [insert address];
-    addVariableToProcess(pid, "<STACK>", FreeSpace, 65536, [insert address]); // What type should these be?
+    addVariableToProcess(pid, "<TEXT>", Char, text_size, 0);
+    addVariableToProcess(pid, "<GLOBALS>", Char, data_size, (text_size);
+    addVariableToProcess(pid, "<STACK>", Char, 65536, (text_size + data_size)); // What type should these be?
     
     //   - print pid - COMPLETED
     std::cout << pid;
@@ -127,7 +127,7 @@ void createProcess(int text_size, int data_size, Mmu *mmu, PageTable *page_table
 
 void allocateVariable(uint32_t pid, std::string var_name, DataType type, uint32_t num_elements, Mmu *mmu, PageTable *page_table)
 {
-    // TODO: implement this!
+    // STODO: implement this!
     int bytes_size;
 
     bytes_size = 0;

@@ -170,7 +170,7 @@ void allocateVariable(uint32_t pid, std::string var_name, DataType type, uint32_
                     int offset;
 
                     offset = mmu->_processes[i]->variables[j]->virtual_address % mmu->memory_size;
-                    if (true)
+                    if ()
                     {
                         
                     }

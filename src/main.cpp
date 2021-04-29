@@ -5,6 +5,7 @@
 #include <sstream>
 #include "mmu.h"
 #include "pagetable.h"
+#include "mmu.cpp"
 
 void printStartMessage(int page_size);
 void createProcess(int text_size, int data_size, Mmu *mmu, PageTable *page_table);
@@ -14,7 +15,7 @@ void freeVariable(uint32_t pid, std::string var_name, Mmu *mmu, PageTable *page_
 void terminateProcess(uint32_t pid, Mmu *mmu, PageTable *page_table);
 void tokenize(std::string const &str, const char delim, std::vector<std::string> &out);
 DataType dataTyper(std::string check);
-
+int pageSizeG;
 int main(int argc, char **argv)
 {
     // Ensure user specified page size as a command line parameter
@@ -26,6 +27,7 @@ int main(int argc, char **argv)
 
     // Print opening instuction message
     int page_size = std::stoi(argv[1]);
+    pageSizeG = page_size;
     printStartMessage(page_size);
 
     // Create physical 'memory'
@@ -138,55 +140,8 @@ void allocateVariable(uint32_t pid, std::string var_name, DataType type, uint32_
 {
     // STODO: implement this!
     int bytes_size;
-
-    bytes_size = 0;
-
-    if (type == Char)
-    {
-        bytes_size = num_elements;
-    }
-    else if (type == Short)
-    {
-        bytes_size = num_elements * 2;
-    }
-    else if (type == Int || type == Float)
-    {
-        bytes_size = num_elements * 4;
-    }
-    else if (type == Long || type == Float)
-    {
-        bytes_size = num_elements * 8;
-    }
-
-    //   - find first free space within a page already allocated to this process that is large enough to fit the new variable
-    for (int i = 0; i < mmu->_processes.size(); i++)
-    {
-        for (int j = 0; j < mmu->_processes[i]->variables.size(); j++)
-        {
-            if (DataType::FreeSpace == mmu->_processes[i]->variables[j]->type)
-            {
-                if (mmu->_processes[i]->variables[j]->size >= bytes_size)
-                {
-                    int offset;
-
-                    offset = mmu->_processes[i]->variables[j]->virtual_address % mmu->memory_size;
-                    if ()
-                    {
-                        
-                    }
-                    else
-                    {
-                        addVariableToProcess(pid, var_name,type, byte_size, mmu->_processes[i]->variables[j]->virtual_address);
-                        mmu->_processes[i]->variables[j]->virtual_address = (mmu->_processes[i]->variables[j]->virtual_address + bytes_size);
-                        mmu->_processes[i]->variables[j]->size = (mmu->_processes[i]->variables[j]->size - bytes_size);
-                    }
-                }
-            }   
-        }
-    }
-
-
-
+    bytes_size = byteSizer(type);
+    mmu->allocate(pid, var_name, type, bytes_size, mmu, page_table, pageSizeG);
     //   - if no hole is large enough, allocate new page(s)
     //   - insert variable into MMU
     //   - print virtual memory address
@@ -204,6 +159,7 @@ void setVariable(uint32_t pid, std::string var_name, uint32_t offset, void *valu
 void freeVariable(uint32_t pid, std::string var_name, Mmu *mmu, PageTable *page_table)
 {
     // TODO: implement this!
+    mmu->freeVar(pid, var_name, mmu, page_table);
     //   - remove entry from MMU
     //   - free page if this variable was the only one on a given page
 }
@@ -211,6 +167,7 @@ void freeVariable(uint32_t pid, std::string var_name, Mmu *mmu, PageTable *page_
 void terminateProcess(uint32_t pid, Mmu *mmu, PageTable *page_table)
 {
     // TODO: implement this!
+    mmu->terminate(pid,  mmu);
     //   - remove process from MMU
     //   - free all pages associated with given process
 }
@@ -258,4 +215,28 @@ DataType dataTyper(std::string check)
         return DataType::Double;
     }
 
+}
+
+int byteSizer(DataType type)
+{
+    if(type == DataType::Char)
+    {
+        return 1;
+    }
+
+    if(type == DataType::Short)
+    {
+        return 2;
+    }
+
+    if(type == DataType::Int || type == DataType::Float)
+    {
+        return 4;
+    }
+
+    if(type == DataType::Long || type == DataType::Double)
+    {
+        return 8;
+    }
+    return 1;
 }

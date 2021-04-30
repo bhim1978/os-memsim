@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "pagetable.h"
 
 enum DataType : uint8_t {Char, Short, Int, Float, Long, Double};
 
@@ -32,7 +33,12 @@ public:
     uint32_t createProcess();
     void addVariableToProcess(uint32_t pid, std::string var_name, DataType type, uint32_t size, uint32_t address);
     void print();
-    void allocate(uint32_t pid, std::string var_name, DataType type, uint32_t num_elements, Mmu *mmu, PageTable *page_table, int pageSize );
+    DataType getDataForSet(uint32_t pid, std::string var_name);
+    uint32_t getSizeForSet(uint32_t pid, std::string var_name);
+    void printVariable(uint32_t pid, std::string var_name, PageTable *page_table, void* memory);
+    void set(uint32_t pid, std::string var_name, uint32_t offset, void *value, Mmu *mmu, PageTable *page_table, void *memory);
+    void printProcess();
+    uint32_t allocate(uint32_t pid, std::string var_name, DataType type, uint32_t num_elements, Mmu *mmu, PageTable *page_table, int pageSize );
     void terminate(uint32_t pid,  Mmu *mmu);
     void freeVar(uint32_t pid, std::string var_name, Mmu *mmu, PageTable *page_table);
 };

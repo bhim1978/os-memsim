@@ -12,18 +12,75 @@ Mmu::~Mmu()
 {
 }
 
+DataType Mmu::getDataForSet(uint32_t pid, std::string var_name)
+{
+    int pidIndex = -1;
+    int found =0;
+    int varIndex;
+    for (int i = 0; i < _processes.size(); i++)
+    {
+        if(_processes[i]->pid == pid)
+        {
+            pidIndex = i;
+        }
+    }
+
+    if(pidIndex == -1)//not found
+    {
+        return DataType::Char;
+    }
+
+    for (int j = 0; j < _processes[pidIndex]->variables.size(); j++)
+    {
+        if(_processes[pidIndex]->variables[j]->name.compare(var_name) == 0)
+        {
+            return _processes[pidIndex]->variables[j]->type;
+        }
+    }
+    return Char;
+
+}
+
+uint32_t Mmu::getSizeForSet(uint32_t pid, std::string var_name)
+{
+    int pidIndex = -1;
+    int found =0;
+    int varIndex;
+    for (int i = 0; i < _processes.size(); i++)
+    {
+        if(_processes[i]->pid == pid)
+        {
+            pidIndex = i;
+        }
+        
+    }
+
+    if(pidIndex == -1)//not found
+    {
+        return DataType::Char;
+    }
+
+    for (int j = 0; j < _processes[pidIndex]->variables.size(); j++)
+    {
+        if(_processes[pidIndex]->variables[j]->name.compare(var_name) == 0)
+        {
+            return _processes[pidIndex]->variables[j]->size;
+        }
+    }
+    return -1;
+
+}
+
 int pageFault(DataType type, int PageEnd, int address)
 {
     int byteSize = byteSizer(type);
     return (PageEnd-address)%byteSize;
 }
 
-
-
- void Mmu::allocate(uint32_t pid, std::string var_name, DataType type, uint32_t num_elements, Mmu *mmu, PageTable *page_table, int pageSize )
- {
-      //   - find first free space within a page already allocated to this process that is large enough to fit the new variable
-    int pidIndex = -1;
+void set(uint32_t pid, std::string var_name, uint32_t offset, void *value, Mmu *mmu, PageTable *page_table, void *memory)
+{
+    /*int found =0;
+    int varIndex;
     for (int i = 0; i < _processes.size(); i++)
     {
         if(_processes[i]->pid == pid)
@@ -35,7 +92,77 @@ int pageFault(DataType type, int PageEnd, int address)
     if(pidIndex == -1)//not found
     {
         std::cout << "error: process not found\n";
-        return;
+        return 1;
+    }
+    for (int j = 0; j < _processes[pidIndex]->variables.size(); j++)
+    {
+        if(_processes[pidIndex]->variables[j]->name.compare(var_name) == 0)
+        {
+            found = 1;
+            varIndex = j;
+        }
+    }
+    if(found == 0)
+    {
+        std::cout << "error: variable not found\n";
+            return;
+    }
+    int pAddress = page_table->getPhysicalAddress(pid, _processes[pidIndex]->variables[varIndex]->virtual_address);
+    DataType type = _processes[pidIndex]->variables[varIndex]->type;
+    std::string input = (std::string) value;
+    if(type == DataType::Char)
+    {
+        memory[pAddress + offset] = input;
+    }
+
+    else if(type == DataType::Short)
+    {
+        short enter = (short) std::stoi(input);
+        memory[pAddress + offset] = enter;
+    }
+
+    else if(type == DataType::Int )
+    {
+        int enter = std::stoi(input);
+        memory[pAddress + offset] = enter;
+    }
+
+    else if(type == DataType::Long)
+    {
+        long enter = std::stol(input);
+        memory[pAddress + offset] = enter;
+    }
+
+     else if(type == DataType::Float)
+    {
+        float enter = std::stof(input);
+        memory[pAddress + offset] = enter;
+    }
+     else if(type == DataType::Double)
+    {
+        double enter = std::stod(input);
+        memory[pAddress + offset] = enter;
+    }*/
+    
+}
+
+ uint32_t Mmu::allocate(uint32_t pid, std::string var_name, DataType type, uint32_t num_elements, Mmu *mmu, PageTable *page_table, int pageSize )
+ {
+      //   - find first free space within a page already allocated to this process that is large enough to fit the new variable
+    int pidIndex = -1;
+    
+    for (int i = 0; i < _processes.size(); i++)
+    {
+        if(_processes[i]->pid == pid)
+        {
+            pidIndex = i;
+        }
+    }
+
+    if(pidIndex == -1)//not found
+    {
+        std::cout << "error: process not found\n";
+        return 1;
     }
 
     for(int i = 0; i < _processes[pidIndex]->variables.size(); i++)
@@ -43,12 +170,13 @@ int pageFault(DataType type, int PageEnd, int address)
         if(_processes[pidIndex]->variables[i]->name.compare(var_name) == 0)
         {
             std::cout << "error: variable already exists\n";
-            return;
+            return 1;
         }
     }
 
     //std::cout << "\n allocate PID: " << pid << "pidIndex:" << pidIndex << "\n";
-
+    uint32_t addy;
+    int found = 0;
     //still need to add page to page table and the frame !!!!!!!!!!!!!!!!!!!!!!!
     for (int j = 0; j < _processes[pidIndex]->variables.size(); j++)
         {
@@ -57,7 +185,9 @@ int pageFault(DataType type, int PageEnd, int address)
                 //std::cout << "\n variable[j]: " << _processes[pidIndex]->variables[j]->name << "j:" << j;
                 if (_processes[pidIndex]->variables[j]->size >= num_elements)//if enough size
                 {
-                    int ZeroPage;
+                    addy = _processes[pidIndex]->variables[j]->virtual_address;
+                    found = 1;
+                    /*int ZeroPage;
                     ZeroPage = _processes[pidIndex]->variables[j]->virtual_address % pageSize;
                     int pageOffsetFault = pageFault(type, pageSize, ZeroPage);
                     if((ZeroPage + num_elements) > pageSize)//requires adding a page
@@ -84,16 +214,27 @@ int pageFault(DataType type, int PageEnd, int address)
                         }
                     }
                     else//normal add no page add required
-                    {
-                        mmu->addVariableToProcess(pid, var_name,type, num_elements, _processes[pidIndex]->variables[j]->virtual_address);
-                        _processes[pidIndex]->variables[j]->virtual_address = (_processes[pidIndex]->variables[j]->virtual_address + num_elements);
-                        _processes[pidIndex]->variables[j]->size = (_processes[pidIndex]->variables[j]->size - num_elements);
-                    }
+                    {*/
+                        if(_processes[pidIndex]->variables[j]->size - num_elements > 0)
+                        {
+                            mmu->addVariableToProcess(pid, "<FREE_SPACE>" ,DataType::Char, _processes[pidIndex]->variables[j]->size - num_elements, _processes[pidIndex]->variables[j]->virtual_address + num_elements);
+                        }
+                        _processes[pidIndex]->variables[j]->name = var_name;
+                        _processes[pidIndex]->variables[j]->size = (num_elements);
+                        _processes[pidIndex]->variables[j]->type= type;
+                    //}
                 }
                 j = _processes[pidIndex]->variables.size();
             }   
         }
-
+        /*if(found == 1)
+        {
+            freeIndex = freeIndex -1;
+            mmu->addVariableToProcess(pid, "<FREE_SPACE>" ,DataType::Char, _processes[pidIndex]->variables[freeIndex]->size, _processes[pidIndex]->variables[freeIndex]->virtual_address);
+            mmu->_processes[pidIndex]->variables.erase(mmu->_processes[pidIndex]->variables.begin()+freeIndex);
+            
+        }*/
+        return addy;
  }
 
  void Mmu::terminate(uint32_t pid,  Mmu *mmu)//remove pages!!!!!
@@ -131,15 +272,18 @@ int pageFault(DataType type, int PageEnd, int address)
         return;
     }
 
+    int found = -1;
+
     for (int j = 0; j < _processes[pidIndex]->variables.size(); j++)
     {
         if(_processes[pidIndex]->variables[j]->name.compare(var_name) == 0)//found var
         {
+            found = 1;
             if(j != 0  && _processes[pidIndex]->variables[j-1]->name.compare("<FREE_SPACE>") == 0 && j+1 < _processes[pidIndex]->variables.size()  && _processes[pidIndex]->variables[j+1]->name.compare("<FREE_SPACE>") == 0 )//free space before and after
             {
                 _processes[pidIndex]->variables[j-1]->size = _processes[pidIndex]->variables[j-1]->size + _processes[pidIndex]->variables[j]->size + _processes[pidIndex]->variables[j+1]->size; //merge sizes of 3
                 mmu->_processes[pidIndex]->variables.erase(mmu->_processes[pidIndex]->variables.begin()+j);//erase target Var 
-                mmu->_processes[pidIndex]->variables.erase(mmu->_processes[pidIndex]->variables.begin()+j+1);//erase free space after
+                mmu->_processes[pidIndex]->variables.erase(mmu->_processes[pidIndex]->variables.begin()+j);//erase free space after
             }
 
             else if(j != 0  && _processes[pidIndex]->variables[j-1]->name.compare("<FREE_SPACE>") == 0)//free space before
@@ -148,7 +292,7 @@ int pageFault(DataType type, int PageEnd, int address)
                 mmu->_processes[pidIndex]->variables.erase(mmu->_processes[pidIndex]->variables.begin()+j);
             }
 
-            else if(j+1 < _processes[pidIndex]->variables.size()  && _processes[pidIndex]->variables[j+1]->name.compare("<FREE_SPACE>") == 0 )//free space  after
+            else if( _processes[pidIndex]->variables[j+1]->name.compare("<FREE_SPACE>") == 0 )//free space  after
             {
                 _processes[pidIndex]->variables[j]->size = _processes[pidIndex]->variables[j]->size + _processes[pidIndex]->variables[j+1]->size; //merge sizes of after
                 mmu->_processes[pidIndex]->variables.erase(mmu->_processes[pidIndex]->variables.begin()+j+1);
@@ -162,6 +306,11 @@ int pageFault(DataType type, int PageEnd, int address)
                 _processes[pidIndex]->variables[j]->type = DataType::Char;
             }
         }
+    }
+
+    if(found == -1)
+    {
+        std::cout << "error: variable not found";
     }
     
   }
@@ -315,3 +464,38 @@ int byteSizer(DataType type)
     }
     return 1;
 }
+
+void Mmu::printProcess()
+{
+    for (int i = 0; i < _processes.size(); i++)
+    {
+        std::cout << _processes[i]->pid << "\n";
+    }
+}
+
+/*void Mmu::printVariable(uint32_t pid, std::string var_name, PageTable *page_table, void* memory)
+{
+    int pidIndex = -1;
+    uint32_t pAddy = 0;
+    for (int i = 0; i < _processes.size(); i++)
+    {
+        if(_processes[i]->pid == pid)
+        {
+            pidIndex = i;
+        }
+    } 
+
+    if(pidIndex == -1)//not found
+    {
+        std::cout << "error: process not found\n";
+        return;
+    }
+    for (int j = 0; j < _processes[i]->variables.size(); j++)
+    {
+        if(_processes[i]->variables[i]->name == var_name);
+        {
+            pAddy = page_table->getPhysicalAddress( pid, virtual_address);
+        }
+    }
+    std::cout << memory[pAddy]<< "\n";
+}*/

@@ -5,7 +5,6 @@
 #include <sstream>
 #include "mmu.h"
 #include "pagetable.h"
-#include "mmu.cpp"
 
 void printStartMessage(int page_size);
 void createProcess(int text_size, int data_size, Mmu *mmu, PageTable *page_table);
@@ -14,7 +13,8 @@ void setVariable(uint32_t pid, std::string var_name, uint32_t offset, void *valu
 void freeVariable(uint32_t pid, std::string var_name, Mmu *mmu, PageTable *page_table);
 void terminateProcess(uint32_t pid, Mmu *mmu, PageTable *page_table);
 void tokenize(std::string const &str, const char delim, std::vector<std::string> &out);
-DataType dataTyper(std::string check);
+DataType dataTyper1(std::string check);
+int byteSizer1(DataType type);
 int pageSizeG;
 int main(int argc, char **argv)
 {
@@ -54,44 +54,55 @@ int main(int argc, char **argv)
             int data_size;
             std::istringstream(tokens[1]) >> text_size;
             std::istringstream(tokens[2]) >> data_size;
-            std::cout << "\n create  text_size: " << text_size << "\n data_size: " << data_size; 
-            //createProcess(text_size, data_size, mmu, page_table);
+            //std::cout << "\n create  text_size: " << text_size << "data_size: " << data_size << "\n"; 
+            createProcess(text_size, data_size, mmu, page_table);
         }
 
-        if(tokens[0].compare("allocate") == 0)
+        else if(tokens[0].compare("allocate") == 0)
         {
             int PID;
             int number_of_elements;
             std::istringstream(tokens[1]) >> PID;
             std::istringstream(tokens[4]) >> number_of_elements;
-            allocateVariable((uint32_t)PID, tokens[2], dataTyper(tokens[3]), (uint32_t)number_of_elements, mmu, page_table);
+            allocateVariable((uint32_t)PID, tokens[2], dataTyper1(tokens[3]), (uint32_t)number_of_elements, mmu, page_table);
             //std::cout << "\n allocate PID: " << PID << "\n var_name: " << tokens[2] << "\n datatype: " << tokens[3] << "\n number_of_elements: " << number_of_elements; 
         }
 
-        if(tokens[0].compare("set") == 0)//not done
+        else if(tokens[0].compare("set") == 0)//not done
         {
             int PID;
             int offset;
             //std::istringstream(tokens[1]) >> PID;
         }
 
-        if(tokens[0].compare("terminate") == 0)
+        else if(tokens[0].compare("terminate") == 0)
         {
             int PID;
             std::istringstream(tokens[1]) >> PID;
             terminateProcess(PID, mmu, page_table);
         }
 
-        if(tokens[0].compare("free") == 0)
+        else if(tokens[0].compare("free") == 0)
         {
             int PID;
             std::istringstream(tokens[1]) >> PID;
             freeVariable(PID, tokens[2], mmu, page_table);
         }
+
+        else if(tokens[0].compare("print") == 0)
+        {
+            mmu->print();
+        }
+
+        else 
+        {
+            std::cout << "error: command not recognized\n";
+        }
         // Get next command
         tokens.clear();
         std::cout << "> ";
         std::getline (std::cin, command);
+
     }
 
     // Cean up
@@ -133,14 +144,15 @@ void createProcess(int text_size, int data_size, Mmu *mmu, PageTable *page_table
     allocateVariable(pid, "<STACK>", Char, 65536, mmu, page_table); // What type should these be?
     
     //   - print pid - COMPLETED
-    std::cout << pid;
+    std::cout << pid<< "\n";
 }
 
 void allocateVariable(uint32_t pid, std::string var_name, DataType type, uint32_t num_elements, Mmu *mmu, PageTable *page_table)
 {
     // STODO: implement this!
     int bytes_size;
-    bytes_size = byteSizer(type);
+    bytes_size = byteSizer1(type)*num_elements;
+   // std::cout << "\n allocate PID: " << pid << "var_name: " << var_name  << "\n number_of_elements: " << bytes_size; 
     mmu->allocate(pid, var_name, type, bytes_size, mmu, page_table, pageSizeG);
     //   - if no hole is large enough, allocate new page(s)
     //   - insert variable into MMU
@@ -183,41 +195,42 @@ void tokenize(std::string const &str, const char delim, std::vector<std::string>
     }
 }
 
-DataType dataTyper(std::string check)
+DataType dataTyper1(std::string check)
 {
-    if(check.compare("Char") == 0)
+    if(check.compare("char") == 0)
     {
         return DataType::Char;
     }
 
-    if(check.compare("Short") == 0)
+    if(check.compare("short") == 0)
     {
         return DataType::Short;
     }
 
-    if(check.compare("Int") == 0)
+    if(check.compare("int") == 0)
     {
         return DataType::Int;
     }
 
-    if(check.compare("Float") == 0)
+    if(check.compare("float") == 0)
     {
         return DataType::Float;
     }
 
-    if(check.compare("Long") == 0)
+    if(check.compare("long") == 0)
     {
         return DataType::Long;
     }
 
-    if(check.compare("Double") == 0)
+    if(check.compare("double") == 0)
     {
         return DataType::Double;
     }
+    return DataType::Char;
 
 }
 
-int byteSizer(DataType type)
+int byteSizer1(DataType type)
 {
     if(type == DataType::Char)
     {

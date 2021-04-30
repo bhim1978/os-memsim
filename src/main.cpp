@@ -8,7 +8,7 @@
 
 void printStartMessage(int page_size);
 void createProcess(int text_size, int data_size, Mmu *mmu, PageTable *page_table);
-void allocateVariable(uint32_t pid, std::string var_name, DataType type, uint32_t num_elements, Mmu *mmu, PageTable *page_table);
+uint32_t allocateVariable(uint32_t pid, std::string var_name, DataType type, uint32_t num_elements, Mmu *mmu, PageTable *page_table);
 void setVariable(uint32_t pid, std::string var_name, uint32_t offset, void *value, Mmu *mmu, PageTable *page_table, void *memory);
 void freeVariable(uint32_t pid, std::string var_name, Mmu *mmu, PageTable *page_table);
 void terminateProcess(uint32_t pid, Mmu *mmu, PageTable *page_table);
@@ -60,38 +60,122 @@ int main(int argc, char **argv)
 
         else if(tokens[0].compare("allocate") == 0)
         {
-            int PID;
-            int number_of_elements;
-            std::istringstream(tokens[1]) >> PID;
-            std::istringstream(tokens[4]) >> number_of_elements;
-            allocateVariable((uint32_t)PID, tokens[2], dataTyper1(tokens[3]), (uint32_t)number_of_elements, mmu, page_table);
+            uint32_t PID = std::stoul(tokens[1]);
+            int number_of_elements = std::stoul(tokens[4]);
+            std::cout << allocateVariable((uint32_t)PID, tokens[2], dataTyper1(tokens[3]), (uint32_t)number_of_elements, mmu, page_table) << "\n";
             //std::cout << "\n allocate PID: " << PID << "\n var_name: " << tokens[2] << "\n datatype: " << tokens[3] << "\n number_of_elements: " << number_of_elements; 
         }
 
-        else if(tokens[0].compare("set") == 0)//not done
+        else if(tokens[0].compare("set") == 0)
         {
-            int PID;
-            int offset;
-            //std::istringstream(tokens[1]) >> PID;
+           /*uint32_t PID = std::stoul(tokens[1]);
+            uint32_t offset = std::stoul(tokens[3]);
+            uint32_t sizeOfVar = mmu->getSizeForSet;
+            DataType type = mmu->getDataForSet(PID, tokens[2]);
+            char* inputChar; = new char[sizeOfVar];
+            short* inputShort  = new short[sizeOfVar];
+            int* inputInt = new int[sizeOfVar];
+            long* inputLong = new long[sizeOfVar];
+            float*inputFloat = new float[sizeOfVar];
+            double* inputDouble = new double[sizeOfVar];
+            for(int i = 4; i < tokens.size(); i++)
+            {
+                if(type == DataType::Char)
+                {
+                   inputChar[i-4] = tokens[i];
+                }
+
+                else if(type == DataType::Short)
+                {
+                    short enter = (short) std::stoi(tokens[i]);
+                    inputShort[i-4] = enter;
+                }
+
+                else if(type == DataType::Int )
+                {
+                    int enter = std::stoi(tokens[i]);
+                    inputInt[i-4]  = enter;
+                }
+
+                else if(type == DataType::Long)
+                {
+                    long enter = std::stol(tokens[i]);
+                 inputLong[i-4]  = enter;
+                }
+
+                else if(type == DataType::Float)
+                {
+                    float enter = std::stof(tokens[i]);
+                    inputFloat[i-4]  = enter;
+                }
+                else if(type == DataType::Double)
+                {
+                    double enter = std::stod(tokens[i]);
+                    inputDouble[i-4]  = enter;
+                }   
+            }
+
+            if(type == DataType::Char)
+                {
+                   mmu->set(PID, tokens[2], offset, inputChar, mmu, page_table, memory);
+                }
+
+                else if(type == DataType::Short)
+                {
+                    mmu->set(PID, tokens[2], offset, inputShort, mmu, page_table, memory);
+                }
+
+                else if(type == DataType::Int )
+                {
+                    mmu->set(PID, tokens[2], offset, inputInt, mmu, page_table, memory);
+                }
+
+                else if(type == DataType::Long)
+                {
+                    mmu->set(PID, tokens[2], offset, inputLong, mmu, page_table, memory);
+                }
+
+                else if(type == DataType::Float)
+                {
+                    mmu->set(PID, tokens[2], offset, inputFloat, mmu, page_table, memory);
+                }
+                else if(type == DataType::Double)
+                {
+                    mmu->set(PID, tokens[2], offset, inputDouble, mmu, page_table, memory);
+                }  */ 
         }
 
         else if(tokens[0].compare("terminate") == 0)
         {
-            int PID;
-            std::istringstream(tokens[1]) >> PID;
+            int PID = std::stoul(tokens[1]);
             terminateProcess(PID, mmu, page_table);
         }
 
         else if(tokens[0].compare("free") == 0)
         {
-            int PID;
-            std::istringstream(tokens[1]) >> PID;
+            int PID = std::stoul(tokens[1]);
             freeVariable(PID, tokens[2], mmu, page_table);
         }
 
         else if(tokens[0].compare("print") == 0)
         {
-            mmu->print();
+            if(tokens[1].compare("mmu") == 0)
+            {
+                mmu->print();
+            }
+
+            else if(tokens[1].compare("page") == 0)
+            {
+                page_table->print();
+            }
+            else if(tokens[1].compare("processes") == 0)
+            {
+                mmu->printProcess();
+            }
+            else if(tokens[1].compare("mmu") == 0)
+            {
+                mmu->print();
+            }
         }
 
         else 
@@ -141,19 +225,20 @@ void createProcess(int text_size, int data_size, Mmu *mmu, PageTable *page_table
     //   - allocate new variables for the <TEXT>, <GLOBALS>, and <STACK>
     allocateVariable(pid, "<TEXT>", Char, text_size, mmu, page_table);
     allocateVariable(pid, "<GLOBALS>", Char, data_size, mmu, page_table);
-    allocateVariable(pid, "<STACK>", Char, 65536, mmu, page_table); // What type should these be?
+    allocateVariable(pid, "<STACK>", Char, 65536, mmu, page_table); 
+    
     
     //   - print pid - COMPLETED
     std::cout << pid<< "\n";
 }
 
-void allocateVariable(uint32_t pid, std::string var_name, DataType type, uint32_t num_elements, Mmu *mmu, PageTable *page_table)
+ uint32_t allocateVariable(uint32_t pid, std::string var_name, DataType type, uint32_t num_elements, Mmu *mmu, PageTable *page_table)
 {
     // STODO: implement this!
     int bytes_size;
     bytes_size = byteSizer1(type)*num_elements;
    // std::cout << "\n allocate PID: " << pid << "var_name: " << var_name  << "\n number_of_elements: " << bytes_size; 
-    mmu->allocate(pid, var_name, type, bytes_size, mmu, page_table, pageSizeG);
+    return mmu->allocate(pid, var_name, type, bytes_size, mmu, page_table, pageSizeG);
     //   - if no hole is large enough, allocate new page(s)
     //   - insert variable into MMU
     //   - print virtual memory address
@@ -162,6 +247,11 @@ void allocateVariable(uint32_t pid, std::string var_name, DataType type, uint32_
 void setVariable(uint32_t pid, std::string var_name, uint32_t offset, void *value, Mmu *mmu, PageTable *page_table, void *memory)
 {
     // TODO: implement this!
+    
+    /*for(int i = 4; i <  input.size()- 4; i++)
+    {
+          mmu->set(pid, var_name, offset+i-4, input[i], mmu, page_table, memory);
+    }*/
     //   - look up physical address for variable based on its virtual address / offset
     //   - insert `value` into `memory` at physical address
     //   * note: this function only handles a single element (i.e. you'll need to call this within a loop when setting

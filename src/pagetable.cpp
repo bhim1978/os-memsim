@@ -1,503 +1,142 @@
-#include "mmu.h"
-int byteSizer(DataType type);
-void whiteSpaceAdder(std::string line);
-void hexConverter(int num);
-Mmu::Mmu(int memory_size)
+#include "pagetable.h"
+void whiteSpaceAdder1(std::string line);
+void whiteSpaceAdderNum(int num);
+PageTable::PageTable(int page_size)
 {
-    _next_pid = 1024;
-    _max_size = memory_size;
+    _page_size = page_size;
 }
 
-Mmu::~Mmu()
+PageTable::~PageTable()
 {
 }
 
-DataType Mmu::getDataForSet(uint32_t pid, std::string var_name)
+std::vector<std::string> PageTable::sortedKeys()
 {
-    int pidIndex = -1;
-    int found =0;
-    int varIndex;
-    for (int i = 0; i < _processes.size(); i++)
+    std::vector<std::string> keys;
+
+    std::map<std::string, int>::iterator it;
+    for (it = _table.begin(); it != _table.end(); it++)
     {
-        if(_processes[i]->pid == pid)
-        {
-            pidIndex = i;
-        }
+        keys.push_back(it->first);
     }
 
-    if(pidIndex == -1)//not found
-    {
-        return DataType::Char;
-    }
+    std::sort(keys.begin(), keys.end(), PageTableKeyComparator());
 
-    for (int j = 0; j < _processes[pidIndex]->variables.size(); j++)
-    {
-        if(_processes[pidIndex]->variables[j]->name.compare(var_name) == 0)
-        {
-            return _processes[pidIndex]->variables[j]->type;
-        }
-    }
-    return Char;
-
+    return keys;
 }
 
-uint32_t Mmu::getSizeForSet(uint32_t pid, std::string var_name)
+void PageTable::addEntry(uint32_t pid, int page_number)
 {
-    int pidIndex = -1;
-    int found =0;
-    int varIndex;
-    for (int i = 0; i < _processes.size(); i++)
+    // Combination of pid and page number act as the key to look up frame number
+    std::string entry = std::to_string(pid) + "|" + std::to_string(page_number);
+    std::map<std::string, int>::iterator it = _table.begin();
+    int frame = 0;
+    while(it != _table.end())
     {
-        if(_processes[i]->pid == pid)
+        int value = it->second;
+        if(value == frame)
         {
-            pidIndex = i;
+            frame++;
+            it =_table.begin();
         }
-        
-    }
-
-    if(pidIndex == -1)//not found
-    {
-        return DataType::Char;
-    }
-
-    for (int j = 0; j < _processes[pidIndex]->variables.size(); j++)
-    {
-        if(_processes[pidIndex]->variables[j]->name.compare(var_name) == 0)
+        else
         {
-            return _processes[pidIndex]->variables[j]->size;
+            it++;
         }
     }
-    return -1;
-
-}
-
-int pageFault(DataType type, int PageEnd, int address)
-{
-    int byteSize = byteSizer(type);
-    return (PageEnd-address)%byteSize;
-}
-
-void set(uint32_t pid, std::string var_name, uint32_t offset, void *value, Mmu *mmu, PageTable *page_table, void *memory)
-{
-    /*int found =0;
-    int varIndex;
-    for (int i = 0; i < _processes.size(); i++)
-    {
-        if(_processes[i]->pid == pid)
-        {
-            pidIndex = i;
-        }
-    }
-
-    if(pidIndex == -1)//not found
-    {
-        std::cout << "error: process not found\n";
-        return 1;
-    }
-    for (int j = 0; j < _processes[pidIndex]->variables.size(); j++)
-    {
-        if(_processes[pidIndex]->variables[j]->name.compare(var_name) == 0)
-        {
-            found = 1;
-            varIndex = j;
-        }
-    }
-    if(found == 0)
-    {
-        std::cout << "error: variable not found\n";
-            return;
-    }
-    int pAddress = page_table->getPhysicalAddress(pid, _processes[pidIndex]->variables[varIndex]->virtual_address);
-    DataType type = _processes[pidIndex]->variables[varIndex]->type;
-    std::string input = (std::string) value;
-    if(type == DataType::Char)
-    {
-        memory[pAddress + offset] = input;
-    }
-
-    else if(type == DataType::Short)
-    {
-        short enter = (short) std::stoi(input);
-        memory[pAddress + offset] = enter;
-    }
-
-    else if(type == DataType::Int )
-    {
-        int enter = std::stoi(input);
-        memory[pAddress + offset] = enter;
-    }
-
-    else if(type == DataType::Long)
-    {
-        long enter = std::stol(input);
-        memory[pAddress + offset] = enter;
-    }
-
-     else if(type == DataType::Float)
-    {
-        float enter = std::stof(input);
-        memory[pAddress + offset] = enter;
-    }
-     else if(type == DataType::Double)
-    {
-        double enter = std::stod(input);
-        memory[pAddress + offset] = enter;
-    }*/
+    // Find free frame
     
+    _table[entry] = frame;
 }
 
- uint32_t Mmu::allocate(uint32_t pid, std::string var_name, DataType type, uint32_t num_elements, Mmu *mmu, PageTable *page_table, int pageSize )
- {
-      //   - find first free space within a page already allocated to this process that is large enough to fit the new variable
-    int pidIndex = -1;
-    
-    for (int i = 0; i < _processes.size(); i++)
-    {
-        if(_processes[i]->pid == pid)
-        {
-            pidIndex = i;
-        }
-    }
-
-    if(pidIndex == -1)//not found
-    {
-        std::cout << "error: process not found\n";
-        return 1;
-    }
-
-    for(int i = 0; i < _processes[pidIndex]->variables.size(); i++)
-    {
-        if(_processes[pidIndex]->variables[i]->name.compare(var_name) == 0)
-        {
-            std::cout << "error: variable already exists\n";
-            return 1;
-        }
-    }
-
-    //std::cout << "\n allocate PID: " << pid << "pidIndex:" << pidIndex << "\n";
-    uint32_t addy;
-    int found = 0;
-    //still need to add page to page table and the frame !!!!!!!!!!!!!!!!!!!!!!!
-    for (int j = 0; j < _processes[pidIndex]->variables.size(); j++)
-        {
-            if (_processes[pidIndex]->variables[j]->name.compare("<FREE_SPACE>") == 0)//if free space
-            {
-                //std::cout << "\n variable[j]: " << _processes[pidIndex]->variables[j]->name << "j:" << j;
-                if (_processes[pidIndex]->variables[j]->size >= num_elements)//if enough size
-                {
-                    addy = _processes[pidIndex]->variables[j]->virtual_address;
-                    found = 1;
-                    /*int ZeroPage;
-                    ZeroPage = _processes[pidIndex]->variables[j]->virtual_address % pageSize;
-                    int pageOffsetFault = pageFault(type, pageSize, ZeroPage);
-                    if((ZeroPage + num_elements) > pageSize)//requires adding a page
-                    {
-                        if (pageOffsetFault != 0)//remainder which means half of one of the datatype bytes would be split by pages
-                        {
-                            if(j != 0 && _processes[pidIndex]->variables[j-1]->name.compare("<FREE_SPACE>") == 0)//free space before so merge the spaces
-                            {
-                            _processes[pidIndex]->variables[j-1]->size = _processes[pidIndex]->variables[j-1]->size + pageOffsetFault;
-                            }
-                            else//no freespace before
-                            {
-                                mmu->addVariableToProcess(pid, "<FREE_SPACE>", DataType::Char, pageOffsetFault, _processes[pidIndex]->variables[j]->virtual_address); 
-                            }
-                            mmu->addVariableToProcess(pid, var_name,type, num_elements, _processes[pidIndex]->variables[j]->virtual_address+pageOffsetFault);
-                            _processes[pidIndex]->variables[j]->virtual_address = (_processes[pidIndex]->variables[j]->virtual_address + num_elements+pageOffsetFault);
-                            _processes[pidIndex]->variables[j]->size = (_processes[pidIndex]->variables[j]->size - (num_elements+pageOffsetFault));
-                        } 
-                        else//normal add but page add required
-                        {
-                        mmu->addVariableToProcess(pid, var_name,type, num_elements, _processes[pidIndex]->variables[j]->virtual_address);
-                        _processes[pidIndex]->variables[j]->virtual_address = (_processes[pidIndex]->variables[j]->virtual_address + num_elements);
-                        _processes[pidIndex]->variables[j]->size = (_processes[pidIndex]->variables[j]->size - num_elements);
-                        }
-                    }
-                    else//normal add no page add required
-                    {*/
-                        if(_processes[pidIndex]->variables[j]->size - num_elements > 0)
-                        {
-                            mmu->addVariableToProcess(pid, "<FREE_SPACE>" ,DataType::Char, _processes[pidIndex]->variables[j]->size - num_elements, _processes[pidIndex]->variables[j]->virtual_address + num_elements);
-                        }
-                        _processes[pidIndex]->variables[j]->name = var_name;
-                        _processes[pidIndex]->variables[j]->size = (num_elements);
-                        _processes[pidIndex]->variables[j]->type= type;
-                    //}
-                }
-                j = _processes[pidIndex]->variables.size();
-            }   
-        }
-        /*if(found == 1)
-        {
-            freeIndex = freeIndex -1;
-            mmu->addVariableToProcess(pid, "<FREE_SPACE>" ,DataType::Char, _processes[pidIndex]->variables[freeIndex]->size, _processes[pidIndex]->variables[freeIndex]->virtual_address);
-            mmu->_processes[pidIndex]->variables.erase(mmu->_processes[pidIndex]->variables.begin()+freeIndex);
-            
-        }*/
-        return addy;
- }
-
- void Mmu::terminate(uint32_t pid,  Mmu *mmu, PageTable *page_table)//remove pages!!!!!
- {
-     int pidIndex = -1;
-    for (int i = 0; i < _processes.size(); i++)
-    {
-        if(_processes[i]->pid == pid)
-        {
-            pidIndex = i;
-        }
-    }
-    if(pidIndex == -1)//not found
-    {
-        std::cout << "error: process not found\n";
-        return;
-    }
-    std::string pidString = std::to_string(pid);
-    page_table->freePages(pidString);
-    mmu->_processes.erase(mmu->_processes.begin()+pidIndex);
- }
-
-  void Mmu::freeVar(uint32_t pid, std::string var_name, Mmu *mmu, PageTable *page_table)
-  {
-    int pidIndex = -1;
-    for (int i = 0; i < _processes.size(); i++)
-    {
-        if(_processes[i]->pid == pid)
-        {
-            pidIndex = i;
-        }
-    } 
-
-    if(pidIndex == -1)//not found
-    {
-        std::cout << "error: process not found\n";
-        return;
-    }
-
-    int found = -1;
-
-    for (int j = 0; j < _processes[pidIndex]->variables.size(); j++)
-    {
-        if(_processes[pidIndex]->variables[j]->name.compare(var_name) == 0)//found var
-        {
-            found = 1;
-            if(j != 0  && _processes[pidIndex]->variables[j-1]->name.compare("<FREE_SPACE>") == 0 && j+1 < _processes[pidIndex]->variables.size()  && _processes[pidIndex]->variables[j+1]->name.compare("<FREE_SPACE>") == 0 )//free space before and after
-            {
-                _processes[pidIndex]->variables[j-1]->size = _processes[pidIndex]->variables[j-1]->size + _processes[pidIndex]->variables[j]->size + _processes[pidIndex]->variables[j+1]->size; //merge sizes of 3
-                mmu->_processes[pidIndex]->variables.erase(mmu->_processes[pidIndex]->variables.begin()+j);//erase target Var 
-                mmu->_processes[pidIndex]->variables.erase(mmu->_processes[pidIndex]->variables.begin()+j);//erase free space after
-            }
-
-            else if(j != 0  && _processes[pidIndex]->variables[j-1]->name.compare("<FREE_SPACE>") == 0)//free space before
-            {
-                _processes[pidIndex]->variables[j-1]->size = _processes[pidIndex]->variables[j-1]->size + _processes[pidIndex]->variables[j]->size; //merge sizes of before
-                mmu->_processes[pidIndex]->variables.erase(mmu->_processes[pidIndex]->variables.begin()+j);
-            }
-
-            else if( _processes[pidIndex]->variables[j+1]->name.compare("<FREE_SPACE>") == 0 )//free space  after
-            {
-                _processes[pidIndex]->variables[j]->size = _processes[pidIndex]->variables[j]->size + _processes[pidIndex]->variables[j+1]->size; //merge sizes of after
-                mmu->_processes[pidIndex]->variables.erase(mmu->_processes[pidIndex]->variables.begin()+j+1);
-                _processes[pidIndex]->variables[j]->name = "<FREE_SPACE>";
-                _processes[pidIndex]->variables[j]->type = DataType::Char;
-            }
-
-            else
-            {
-                 _processes[pidIndex]->variables[j]->name = "<FREE_SPACE>";
-                _processes[pidIndex]->variables[j]->type = DataType::Char;
-            }
-        }
-    }
-
-    if(found == -1)
-    {
-        std::cout << "error: variable not found";
-    }
-    
-  }
-
-uint32_t Mmu::createProcess()
+int PageTable::getPhysicalAddress(uint32_t pid, uint32_t virtual_address)
 {
-    Process *proc = new Process();
-    proc->pid = _next_pid;
+    // Convert virtual address to page_number and page_offset
+    // TODO: implement this!
+    int page_number = 0;
+    int page_offset = 0;
+    page_number = virtual_address/_page_size;
+    page_offset = virtual_address%_page_size;
 
-    Variable *var = new Variable();
-    var->name = "<FREE_SPACE>";
-    var->virtual_address = 0;
-    var->size = _max_size;
-    proc->variables.push_back(var);
 
-    _processes.push_back(proc);
-
-    _next_pid++;
-    return proc->pid;
+    // Combination of pid and page number act as the key to look up frame number
+    std::string entry = std::to_string(pid) + "|" + std::to_string(page_number);
+    
+    // If entry exists, look up frame number and convert virtual to physical address
+    int address = -1;
+    std::map<std::string, int>::iterator it = _table.begin();
+    if (_table.count(entry) > 0)
+    {
+            address = (_page_size*PageTable::_table.at(entry)) + page_offset;
+    }
+    return address;
 }
 
-void Mmu::addVariableToProcess(uint32_t pid, std::string var_name, DataType type, uint32_t size, uint32_t address)
+void PageTable::print()
 {
     int i;
-    Process *proc = NULL;
-    for (i = 0; i < _processes.size(); i++)
-    {
-        if (_processes[i]->pid == pid)
-        {
-            proc = _processes[i];
-        }
-    }
 
-    Variable *var = new Variable();
-    var->name = var_name;
-    var->virtual_address = address;
-    var->size = size;
-    if (proc != NULL)
-    {
-        proc->variables.push_back(var);
-    }
-}
+    std::cout << " PID  | Page Number | Frame Number" << std::endl;
+    std::cout << "------+-------------+--------------" << std::endl;
 
-void Mmu::print()
-{
-    int i, j;
+    std::vector<std::string> keys = sortedKeys();
 
-    std::cout << " PID  | Variable Name | Virtual Addr | Size" << std::endl;
-    std::cout << "------+---------------+--------------+------------" << std::endl;
-    for (i = 0; i < _processes.size(); i++)
+    for (i = 0; i < keys.size(); i++)
     {
-        for (j = 0; j < _processes[i]->variables.size(); j++)
-        {
-            if (_processes[i]->variables[j]->name.compare("<FREE_SPACE>") != 0)
-            {
-                std::cout <<" "<< _processes[i]->pid << " | " <<  _processes[i]->variables[j]->name;
-                whiteSpaceAdder(_processes[i]->variables[j]->name);
-                std::cout << " |   "; 
-                hexConverter(_processes[i]->variables[j]->virtual_address);
-                std::cout << " | " << _processes[i]->variables[j]->size << "\n";
-            }
-            
-        }
+        std::string tempkey = keys[i];
+        std::size_t index = tempkey.find("|");
+        std::string temppid = tempkey.substr(0, index);
+        std::string tempframe = tempkey.substr(index+1, tempkey.size());
+        std::cout <<" "<< temppid << " | ";
+        whiteSpaceAdder1(tempframe); 
+        std::cout <<tempframe << " | ";
+        whiteSpaceAdderNum(_table[keys[i]]);
+        std::cout << _table[keys[i]] << "\n";
+        
     }
 }
 
-void whiteSpaceAdder(std::string line)
+void PageTable::freePages(std::string pid) {
+    
+    std::map<std::string, int>::iterator it;
+    for (it = _table.begin(); it != _table.end();)
+    {
+        std::string sep = "|";
+        std::string it_pid;
+        int pos = it->first.find(sep);
+        if (pos != std::string::npos) {
+            it_pid = it->first.substr(0, pos);
+        }
+        if (it_pid == pid) {
+            _table.erase(it++);
+        }else {
+            it++;
+        }
+    }
+}
+
+void whiteSpaceAdder1(std::string line)
 {
-    for (int i = 0; i < 13 - line.size(); i++)
+    for (int i = 0; i < 11 - line.size(); i++)
     {
         std::cout << " ";
     }
         
 }
 
-void hexConverter(int num)
+
+void whiteSpaceAdderNum(int num)
 {
-    std::cout << "0x";
-    int r;
-    std::string hexdec_num="";
-    char hex[]={'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
-    while(num>0)
-    {   
-        r = num % 16;
-        hexdec_num = hex[r] + hexdec_num;
-        num = num/16;
-    }
-    for (int i = 0; i < 8 - hexdec_num.size(); i++)
+    int temp = num;
+    int count = 0;
+    while(temp > 10)
     {
-        std::cout << "0";
+        count = count +1;
+        temp = temp/10;
     }
-    std::cout << hexdec_num;
-    
+    for (int i = 0; i < 11 - count; i++)
+    {
+        std::cout << " ";
+    }
+        
 }
-
-
-DataType dataTyper(std::string check)
-{
-    if(check.compare("char") == 0)
-    {
-        return DataType::Char;
-    }
-
-    if(check.compare("short") == 0)
-    {
-        return DataType::Short;
-    }
-
-    if(check.compare("int") == 0)
-    {
-        return DataType::Int;
-    }
-
-    if(check.compare("float") == 0)
-    {
-        return DataType::Float;
-    }
-
-    if(check.compare("long") == 0)
-    {
-        return DataType::Long;
-    }
-
-    if(check.compare("double") == 0)
-    {
-        return DataType::Double;
-    }
-    return DataType::Char;
-}
-
-int byteSizer(DataType type)
-{
-    if(type == DataType::Char)
-    {
-        return 1;
-    }
-
-    if(type == DataType::Short)
-    {
-        return 2;
-    }
-
-    if(type == DataType::Int || type == DataType::Float)
-    {
-        return 4;
-    }
-
-    if(type == DataType::Long || type == DataType::Double)
-    {
-        return 8;
-    }
-    return 1;
-}
-
-void Mmu::printProcess()
-{
-    for (int i = 0; i < _processes.size(); i++)
-    {
-        std::cout << _processes[i]->pid << "\n";
-    }
-}
-
-/*void Mmu::printVariable(uint32_t pid, std::string var_name, PageTable *page_table, void* memory)
-{
-    int pidIndex = -1;
-    uint32_t pAddy = 0;
-    for (int i = 0; i < _processes.size(); i++)
-    {
-        if(_processes[i]->pid == pid)
-        {
-            pidIndex = i;
-        }
-    } 
-
-    if(pidIndex == -1)//not found
-    {
-        std::cout << "error: process not found\n";
-        return;
-    }
-    for (int j = 0; j < _processes[i]->variables.size(); j++)
-    {
-        if(_processes[i]->variables[i]->name == var_name);
-        {
-            pAddy = page_table->getPhysicalAddress( pid, virtual_address);
-        }
-    }
-    std::cout << memory[pAddy]<< "\n";
-}*/

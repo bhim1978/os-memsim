@@ -182,12 +182,12 @@ void set(uint32_t pid, std::string var_name, uint32_t offset, void *value, Mmu *
         {
             if (_processes[pidIndex]->variables[j]->name.compare("<FREE_SPACE>") == 0)//if free space
             {
-                //std::cout << "\n variable[j]: " << _processes[pidIndex]->variables[j]->name << "j:" << j;
                 if (_processes[pidIndex]->variables[j]->size >= num_elements)//if enough size
                 {
                     addy = _processes[pidIndex]->variables[j]->virtual_address;
                     found = 1;
-                    /*int ZeroPage;
+                    int ZeroPage;
+                    int endPage = 0;
                     ZeroPage = _processes[pidIndex]->variables[j]->virtual_address % pageSize;
                     int pageOffsetFault = pageFault(type, pageSize, ZeroPage);
                     if((ZeroPage + num_elements) > pageSize)//requires adding a page
@@ -196,25 +196,40 @@ void set(uint32_t pid, std::string var_name, uint32_t offset, void *value, Mmu *
                         {
                             if(j != 0 && _processes[pidIndex]->variables[j-1]->name.compare("<FREE_SPACE>") == 0)//free space before so merge the spaces
                             {
-                            _processes[pidIndex]->variables[j-1]->size = _processes[pidIndex]->variables[j-1]->size + pageOffsetFault;
+                                _processes[pidIndex]->variables[j-1]->size = _processes[pidIndex]->variables[j-1]->size + pageOffsetFault;
+                                mmu->addVariableToProcess(pid, "<FREE_SPACE>", DataType::Char, _processes[pidIndex]->variables[j]->size - (pageOffsetFault + num_elements), _processes[pidIndex]->variables[j]->virtual_address + pageOffsetFault + num_elements);
+                                _processes[pidIndex]->variables[j]->name= var_name;
+                                _processes[pidIndex]->variables[j]->size = num_elements;
+                                _processes[pidIndex]->variables[j]->virtual_address = _processes[pidIndex]->variables[j]->virtual_address + pageOffsetFault;
+                                _processes[pidIndex]->variables[j]->type = type;
+                                endPage = _processes[pidIndex]->variables[j]->virtual_address / pageSize;
+                                page_table->addEntry(pid, endPage);
                             }
                             else//no freespace before
                             {
-                                mmu->addVariableToProcess(pid, "<FREE_SPACE>", DataType::Char, pageOffsetFault, _processes[pidIndex]->variables[j]->virtual_address); 
+                                mmu->addVariableToProcess(pid, var_name, type, num_elements, _processes[pidIndex]->variables[j]->virtual_address  + pageOffsetFault); 
+                                mmu->addVariableToProcess(pid, "<FREE_SPACE>", DataType::Char, _processes[pidIndex]->variables[j]->size - (pageOffsetFault + num_elements), _processes[pidIndex]->variables[j]->virtual_address + pageOffsetFault + num_elements);
+                                _processes[pidIndex]->variables[j]->name= "<FREE_SPACE>";
+                                _processes[pidIndex]->variables[j]->size = pageOffsetFault;
+                                endPage = _processes[pidIndex]->variables[j+1]->virtual_address / pageSize;
+                                page_table->addEntry(pid, endPage);
                             }
-                            mmu->addVariableToProcess(pid, var_name,type, num_elements, _processes[pidIndex]->variables[j]->virtual_address+pageOffsetFault);
-                            _processes[pidIndex]->variables[j]->virtual_address = (_processes[pidIndex]->variables[j]->virtual_address + num_elements+pageOffsetFault);
-                            _processes[pidIndex]->variables[j]->size = (_processes[pidIndex]->variables[j]->size - (num_elements+pageOffsetFault));
                         } 
                         else//normal add but page add required
                         {
-                        mmu->addVariableToProcess(pid, var_name,type, num_elements, _processes[pidIndex]->variables[j]->virtual_address);
-                        _processes[pidIndex]->variables[j]->virtual_address = (_processes[pidIndex]->variables[j]->virtual_address + num_elements);
-                        _processes[pidIndex]->variables[j]->size = (_processes[pidIndex]->variables[j]->size - num_elements);
+                                if(_processes[pidIndex]->variables[j]->size - num_elements > 0)
+                                {
+                                     mmu->addVariableToProcess(pid, "<FREE_SPACE>" ,DataType::Char, _processes[pidIndex]->variables[j]->size - num_elements, _processes[pidIndex]->variables[j]->virtual_address + num_elements);
+                                }
+                                _processes[pidIndex]->variables[j]->name = var_name;
+                                _processes[pidIndex]->variables[j]->size = (num_elements);
+                                _processes[pidIndex]->variables[j]->type= type;
+                                endPage = _processes[pidIndex]->variables[j]->virtual_address / pageSize;
+                                page_table->addEntry(pid, endPage);
                         }
                     }
                     else//normal add no page add required
-                    {*/
+                    {
                         if(_processes[pidIndex]->variables[j]->size - num_elements > 0)
                         {
                             mmu->addVariableToProcess(pid, "<FREE_SPACE>" ,DataType::Char, _processes[pidIndex]->variables[j]->size - num_elements, _processes[pidIndex]->variables[j]->virtual_address + num_elements);
@@ -222,7 +237,7 @@ void set(uint32_t pid, std::string var_name, uint32_t offset, void *value, Mmu *
                         _processes[pidIndex]->variables[j]->name = var_name;
                         _processes[pidIndex]->variables[j]->size = (num_elements);
                         _processes[pidIndex]->variables[j]->type= type;
-                    //}
+                    }
                 }
                 j = _processes[pidIndex]->variables.size();
             }   
@@ -235,7 +250,7 @@ void set(uint32_t pid, std::string var_name, uint32_t offset, void *value, Mmu *
             
         }*/
         return addy;
- }
+    }
 
  void Mmu::terminate(uint32_t pid,  Mmu *mmu, PageTable *page_table)//remove pages!!!!!
  {

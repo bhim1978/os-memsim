@@ -16,6 +16,7 @@ void tokenize(std::string const &str, const char delim, std::vector<std::string>
 DataType dataTyper1(std::string check);
 int byteSizer1(DataType type);
 int pageSizeG;
+int total_mem = 0;
 int main(int argc, char **argv)
 {
     // Ensure user specified page size as a command line parameter
@@ -60,6 +61,7 @@ int main(int argc, char **argv)
 
         else if(tokens[0].compare("allocate") == 0)
         {
+            
             uint32_t PID = std::stoul(tokens[1]);
             int number_of_elements = std::stoul(tokens[4]);
             std::cout << allocateVariable((uint32_t)PID, tokens[2], dataTyper1(tokens[3]), (uint32_t)number_of_elements, mmu, page_table) << "\n";
@@ -237,7 +239,12 @@ void createProcess(int text_size, int data_size, Mmu *mmu, PageTable *page_table
     // STODO: implement this!
     int bytes_size;
     bytes_size = byteSizer1(type)*num_elements;
+    total_mem = total_mem + bytes_size;
    // std::cout << "\n allocate PID: " << pid << "var_name: " << var_name  << "\n number_of_elements: " << bytes_size; 
+   if (total_mem > 67108864)
+   {
+        std::cout << "error: maximum memory exceeded. cannot allocate memory\n";
+   }
     return mmu->allocate(pid, var_name, type, bytes_size, mmu, page_table, pageSizeG);
     //   - if no hole is large enough, allocate new page(s)
     //   - insert variable into MMU
@@ -269,7 +276,7 @@ void freeVariable(uint32_t pid, std::string var_name, Mmu *mmu, PageTable *page_
 void terminateProcess(uint32_t pid, Mmu *mmu, PageTable *page_table)
 {
     // TODO: implement this!
-    mmu->terminate(pid,  mmu);
+    mmu->terminate(pid,  mmu, page_table);
     //   - remove process from MMU
     //   - free all pages associated with given process
 }

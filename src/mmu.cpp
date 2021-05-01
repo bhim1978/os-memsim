@@ -237,7 +237,7 @@ void set(uint32_t pid, std::string var_name, uint32_t offset, void *value, Mmu *
         return addy;
  }
 
- void Mmu::terminate(uint32_t pid,  Mmu *mmu)//remove pages!!!!!
+ void Mmu::terminate(uint32_t pid,  Mmu *mmu, PageTable *page_table)//remove pages!!!!!
  {
      int pidIndex = -1;
     for (int i = 0; i < _processes.size(); i++)
@@ -252,6 +252,8 @@ void set(uint32_t pid, std::string var_name, uint32_t offset, void *value, Mmu *
         std::cout << "error: process not found\n";
         return;
     }
+    std::string pidString = std::to_string(pid);
+    page_table->freePages(pidString);
     mmu->_processes.erase(mmu->_processes.begin()+pidIndex);
  }
 

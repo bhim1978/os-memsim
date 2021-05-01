@@ -39,7 +39,7 @@ public:
     void set(uint32_t pid, std::string var_name, uint32_t offset, void *value, Mmu *mmu, PageTable *page_table, void *memory);
     void printProcess();
     uint32_t allocate(uint32_t pid, std::string var_name, DataType type, uint32_t num_elements, Mmu *mmu, PageTable *page_table, int pageSize );
-    void terminate(uint32_t pid,  Mmu *mmu);
+    void terminate(uint32_t pid,  Mmu *mmu, PageTable *page_table);
     void freeVar(uint32_t pid, std::string var_name, Mmu *mmu, PageTable *page_table);
 };
 
